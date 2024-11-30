@@ -14,6 +14,8 @@ import matplotlib.pyplot as plt
 #initialize pygame
 pygame.init()
 
+#testing
+
 WIDTH, HEIGHT = 800, 600 #width and height of the window
 window = pygame.display.set_mode((WIDTH, HEIGHT)) #create the window
 def calculate_distance(p1,p2):
