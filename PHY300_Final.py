@@ -7,10 +7,11 @@ Credits: ...
 #all imported modules
 import pymunk as pm 
 import math
-import pygame
+import pygame  
 import pymunk.pygame_util
 import matplotlib.pyplot as plt
 
+# hjhj
 #initialize pygame
 pygame.init()
 
