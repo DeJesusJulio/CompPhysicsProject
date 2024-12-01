@@ -16,7 +16,7 @@ pygame.init()
 
 #testing
 
-WIDTH, HEIGHT = 800, 600 #width and height of the window
+WIDTH, HEIGHT = 1000, 500 #width and height of the window
 window = pygame.display.set_mode((WIDTH, HEIGHT)) #create the window
 def calculate_distance(p1,p2):
     return math.sqrt((p2[1] - p1[1]**2 + (p2[0] - p1[0])**2))
@@ -47,15 +47,14 @@ def add_object(space, radius, mass, pos): # if we want to have multiple similar 
 
 
 def m_object_ball(space):
-    body = pm.Body(body_type = pymunk.Body.STATIC)
-    body.position = (200,380)
-    shape = pm.Circle(body, 20) #creating a circle shape
+    body = pm.Body(body_type = pymunk.Body.DYNAMIC)
+    body.position = (200,370)
+    shape = pm.Circle(body, 35) #creating a circle shape
     shape.mass = 0.4 #mass of the object
     shape.elasticity = 0.95 #elasticity of the object
     shape.friction = 0 #friction of the object
     shape.color = (0,0,0,50) #color of the object (R,G,B,Alpha(opacisty))
     space.add(body,shape) #add the body and shape to the space
-
 
 
 def staticBoundaries(space):
@@ -64,12 +63,12 @@ def staticBoundaries(space):
     space.add(static_body)  # Add the static body to the space first
     
     # Define perpendicular lines with the desired lengths
-    horizontal_line = pm.Segment(static_body, (100, 400), (650, 400), 1)  # Longer horizontal line
-    vertical_line = pm.Segment(static_body, (100, 400), (100, 200), 1)    # Shorter vertical line
+    horizontal_line = pm.Segment(static_body, (100, 400), (800, 400), 1.5)  # Longer horizontal line
+    vertical_line = pm.Segment(static_body, (100, 400), (100, 125), 1.5)    # Shorter vertical line
 
     # Set properties for the lines
     for line in [horizontal_line, vertical_line]:
-        line.elasticity = 100000
+        line.elasticity = 0.1
         line.friction = 0
         space.add(line)  # Add each line to the space
 
@@ -83,6 +82,7 @@ def run(window,width,height):
     delta = 1 / fps #displacement in time
 
     space = pm.Space()
+    space.gravity = (0, 981)
 
     staticBoundaries(space)
     m_object_ball(space)
@@ -104,10 +104,10 @@ def run(window,width,height):
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if not ball: 
                     pressed_pos = pygame.mouse.get_pos()
-                    ball = add_object(space,20,10, (400,380))
+                    ball = add_object(space,40,10, (400,380))
                 elif pressed_pos:
                     ball.body.body_type = pymunk.Body.DYNAMIC
-                    ball.body.apply_impulse_at_local_point((-10000, 0),(0,0)) #qpplying force to the ball. (force being applied on x,y axis), (location on the shape))
+                    ball.body.apply_impulse_at_local_point((-5000, 0),(0,0)) #qpplying force to the ball. (force being applied on x,y axis), (location on the shape))
                     pressed_pos = None
                 else: 
                     space.remove(ball.body, ball)
