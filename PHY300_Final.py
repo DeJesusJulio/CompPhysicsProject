@@ -46,11 +46,12 @@ def add_object(space, radius, mass, pos): # if we want to have multiple similar 
     return shape #return the shape
 
 
+
 def m_object_ball(space):
     body = pm.Body(body_type = pymunk.Body.DYNAMIC)
     body.position = (200,370)
     shape = pm.Circle(body, 35) #creating a circle shape
-    shape.mass = 0.4 #mass of the object
+    shape.mass = 1 #mass of the object
     shape.elasticity = 0.95 #elasticity of the object
     shape.friction = 0 #friction of the object
     shape.color = (0,0,0,50) #color of the object (R,G,B,Alpha(opacisty))
@@ -68,7 +69,7 @@ def staticBoundaries(space):
 
     # Set properties for the lines
     for line in [horizontal_line, vertical_line]:
-        line.elasticity = 0.1
+        line.elasticity = 1
         line.friction = 0
         space.add(line)  # Add each line to the space
 
@@ -104,10 +105,10 @@ def run(window,width,height):
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if not ball: 
                     pressed_pos = pygame.mouse.get_pos()
-                    ball = add_object(space,40,10, (400,380))
+                    ball = add_object(space,40,100, (400,380))
                 elif pressed_pos:
                     ball.body.body_type = pymunk.Body.DYNAMIC
-                    ball.body.apply_impulse_at_local_point((-5000, 0),(0,0)) #qpplying force to the ball. (force being applied on x,y axis), (location on the shape))
+                    ball.body.apply_impulse_at_local_point((-10000, 0),(0,0)) #qpplying force to the ball. (force being applied on x,y axis), (location on the shape))
                     pressed_pos = None
                 else: 
                     space.remove(ball.body, ball)
