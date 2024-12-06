@@ -1,126 +1,162 @@
-'''
-Authors: Adrian Liborio and Julio De Jesus 
-Date: 11.29.2024
-Description: ...
-Credits: ...
-'''
-#all imported modules
-import pymunk as pm 
 import math
-import pygame
-import pymunk.pygame_util
-import matplotlib.pyplot as plt
+import numpy as np
+import pygame 
 
-#initialize pygame
+
 pygame.init()
+WIDTH, HEIGHT = 1000, 500
+window = pygame.display.set_mode((WIDTH,HEIGHT))
 
-#testing
-
-WIDTH, HEIGHT = 1000, 500 #width and height of the window
-window = pygame.display.set_mode((WIDTH, HEIGHT)) #create the window
-def calculate_distance(p1,p2):
-    return math.sqrt((p2[1] - p1[1]**2 + (p2[0] - p1[0])**2))
-
-def calculate_angle(p1,p2):
-    return math.atan2(p2[1] - p1[1], p2[0] - p1[0])
-
-def draw(space,window,draw_option,line): #function to draw the objects
-    window.fill('Gray') #fill the window with white color. Might change to other. 
-
-    if line: 
-        pygame.draw.line(window, "black", line[0], line[1], 3)
+##creating a definiton for object
+class CircularObject:
+    ### creating the objects properties 
+    def __init__(self,xpos,ypos,vx,vy,mass,radius, color):
+        self.xpos = xpos
+        self.ypos = ypos
+        self.vx = vx
+        self.vy = vy
+        self.mass = mass
+        self.radius = radius 
+        self.color = color
     
-    space.debug_draw(draw_option) #draw the objects
-    pygame.display.update() #update the display
+    ### drawing the circle
+    def draw(self, window):
+        pygame.draw.circle(window, self.color, (int(self.xpos), int(self.ypos)), self.radius)
 
-#function to create a object
-def add_object(space, radius, mass, pos): # if we want to have multiple similar shapes we can add more paraemter for postion. 
-    body = pm.Body(body_type = pymunk.Body.DYNAMIC) #creating a body
-    body.position = pos #position of the object
-    shape = pm.Circle(body, radius) #creating a circle shape
-    shape.mass = mass #mass of the object
-    shape.elasticity = 0.95 #elasticity of the object
-    shape.friction = 0 #friction of the object
-    shape.color = (0,0,0,50) #color of the object (R,G,B,Alpha(opacisty))
-    space.add(body,shape) #add the body and shape to the space
-    return shape #return the shape
+    def update_pos(self, delta):
+        #motion detection
+        self.xpos += self.vx * delta 
+        self.ypos += self.vy * delta
 
+class Line:
+    def __init__(self, x, y, width, height, color):
+        self.x = x  # X-coordinate of the line's top-left corner
+        self.y = y  # Y-coordinate of the line's top-left corner
+        self.width = width  # Width of the line
+        self.height = height  # Thickness of the line
+        self.color = color  # Color of the line
 
+    def draw(self, screen):
+        pygame.draw.rect(screen, self.color, (self.x, self.y, self.width, self.height))
+        
 
-def m_object_ball(space):
-    body = pm.Body(body_type = pymunk.Body.DYNAMIC)
-    body.position = (200,370)
-    shape = pm.Circle(body, 35) #creating a circle shape
-    shape.mass = 1 #mass of the object
-    shape.elasticity = 0.95 #elasticity of the object
-    shape.friction = 0 #friction of the object
-    shape.color = (0,0,0,50) #color of the object (R,G,B,Alpha(opacisty))
-    space.add(body,shape) #add the body and shape to the space
+class Physics:
 
-
-def staticBoundaries(space):
-    # Create a static body
-    static_body = pm.Body(body_type=pm.Body.STATIC)
-    space.add(static_body)  # Add the static body to the space first
+    def __init__(self):
+        self.objects = []
+        self.gravity = 981 #Constant gravity
+        self.elasticity = 1 #Elasticity factor for bounce (1.0 completly elastic anything less some energy is lost)
     
-    # Define perpendicular lines with the desired lengths
-    horizontal_line = pm.Segment(static_body, (100, 400), (800, 400), 1.5)  # Longer horizontal line
-    vertical_line = pm.Segment(static_body, (100, 400), (100, 125), 1.5)    # Shorter vertical line
+    def add_object(self, obj):
+        self.objects.append(obj)
 
-    # Set properties for the lines
-    for line in [horizontal_line, vertical_line]:
-        line.elasticity = 1
-        line.friction = 0
-        space.add(line)  # Add each line to the space
+    ### gravity 
+    def apply_gravity(self, obj, delta):
+        obj.vy += self.gravity * delta
+    
+    ### has to be a little more complicated because i have to take into account width and length of rectange
+    def check_horizontal_collision(self, obj, line):
+    # Check if the ball is falling into the vertical bounds of the line
+        if obj.ypos + obj.radius >= line.y and obj.ypos - obj.radius <= line.y + line.height:
+            # Check if the ball is within the horizontal bounds of the line
+            if obj.xpos >= line.x and obj.xpos <= line.x + line.width:
+                obj.vy = 0  # Stop vertical movement
+                obj.ypos = line.y - obj.radius  # Correct position to be on top of the line
+
+    def check_vertical_wall_collision(self, obj, line):
+        # Check for collision with the left vertical wall
+        if obj.xpos - obj.radius <= line.x:  # Ball's left edge hits the wall
+            obj.vx = -obj.vx  # Reverse horizontal velocity (bounce effect)
+            obj.xpos = line.x + obj.radius  # Prevent the ball from passing through the wall
+    
+    def ball_to_ball_collision(self, obj1, obj2):
+        # Calculate the distance between the centers of the two balls
+        dx = obj2.xpos - obj1.xpos
+        dy = obj2.ypos - obj1.ypos
+        distance = math.sqrt(dx**2 + dy**2)
+
+        # Check if the distance between the balls is less than or equal to the sum of their radii (collision check)
+        if distance <= (obj1.radius + obj2.radius):
+            # Elastic head-on collision equations
+
+            #normalizing collision vectors
+            
 
 
+            # Calculate new velocities for both balls based on their masses and velocities
+            v1x_new = (((obj1.mass - obj2.mass)/(obj1.mass + obj2.mass))*obj1.vx) - (((2 * obj2.mass) / (obj1.mass + obj2.mass))*obj2.vx)
+            v2x_new = (((2 * obj1.mass) / (obj1.mass + obj2.mass))*obj1.vx) + (((obj1.mass - obj2.mass)/(obj1.mass + obj2.mass))*obj2.vx)
+            #v1n_new = ((obj1.mass - obj2.mass) * obj1.vx + 2 * obj2.mass * obj2.vx) / (obj1.mass + obj2.mass)
+            #v2n_new = ((obj2.mass - obj1.mass) * obj2.vx + 2 * obj1.mass * obj1.vx) / (obj1.mass + obj2.mass)
 
-#function to run the simulation
-def run(window,width,height):
-    run = True 
+            # Update the velocities of the balls
+            obj1.vx = v1x_new 
+            obj2.vx = v2x_new 
+
+
+    def update(self, delta, line_x=None, line_y=None):
+        for obj in self.objects:
+            self.apply_gravity(obj, delta)  # Apply gravity to each object
+            obj.update_pos(delta)  # Update position of the object
+
+            if line_x:
+                self.check_horizontal_collision(obj, line_x)
+            
+            if line_y:
+                self.check_vertical_wall_collision(obj, line_y)  # Check horizontal collision with a line
+            
+            for other_obj in self.objects:
+                if other_obj != obj:
+                    self.ball_to_ball_collision(obj, other_obj)
+
+    
+
+stationary_circle = CircularObject(300, 300, 0, 0, 1, 30,(0, 0, 0))
+moving_circle = CircularObject(500, 300, -50, 0, 10, 30,(0, 0, 0))
+
+
+horizontal_line = Line(200,300, 500, 10, (0,0,0))
+verticle_line = Line(200,150,10,150,(0,0,0))
+
+physics = Physics()
+physics.add_object(stationary_circle)
+physics.add_object(moving_circle)
+
+
+def run():
+    run = True
+    fps = 30
+    delta = 1 / fps
     clock = pygame.time.Clock()
-    fps  = 60 #frames per second
-    delta = 1 / fps #displacement in time
 
-    space = pm.Space()
-    space.gravity = (0, 981)
-
-    staticBoundaries(space)
-    m_object_ball(space)
-
-    draw_option = pymunk.pygame_util.DrawOptions(window)
-
-    pressed_pos = None
-    ball = None
-
-    while run: 
-        line = None
-        if ball and pressed_pos: 
-            line = [pressed_pos,pygame.mouse.get_pos()]
+    #doing the loop
+    while run:
+        window.fill('Gray')
         for event in pygame.event.get():
-            if event.type == pygame.QUIT:   #if the user closes the window
+            if event.type == pygame.QUIT:
                 run = False
 
-            #this might be temporary.
-            if event.type == pygame.MOUSEBUTTONDOWN:
-                if not ball: 
-                    pressed_pos = pygame.mouse.get_pos()
-                    ball = add_object(space,40,100, (400,380))
-                elif pressed_pos:
-                    ball.body.body_type = pymunk.Body.DYNAMIC
-                    ball.body.apply_impulse_at_local_point((-10000, 0),(0,0)) #qpplying force to the ball. (force being applied on x,y axis), (location on the shape))
-                    pressed_pos = None
-                else: 
-                    space.remove(ball.body, ball)
-                    ball = None
+        ##keeping track of the physics 
+        physics.update(delta, line_x=horizontal_line, line_y=verticle_line) #line_y=line_y, line_x=line_x)
 
-        draw(space,window,draw_option, line) #draw the objects
-        space.step(delta) #step the simulation
-        clock.tick(fps) #tick the clock
 
-    pygame.QUIT()
+        ##creating the verticle lines
+        #pygame.draw.line(window, (0, 0, 0), (100, line_y), (800, line_y), 4)  # Horizontal line
+        #pygame.draw.line(window, (0, 0, 0), (line_x, 50), (line_x, 300), 4)  # Vertical line
 
-#main function
+        # Draw the ball and the line
+        stationary_circle.draw(window)
+        moving_circle.draw(window)
+        horizontal_line.draw(window)
+        verticle_line.draw(window)
+
+
+
+        
+
+        pygame.display.update()
+        clock.tick(fps)
+    pygame.quit()
+
 if __name__ == "__main__":
-    run(window, WIDTH, HEIGHT)
-
+    run()
